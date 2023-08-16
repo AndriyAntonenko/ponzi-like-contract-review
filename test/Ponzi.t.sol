@@ -21,10 +21,7 @@ contract PonziTest is Test {
 
     // this modifier will add n affiliates to the ponzi contract before running any test
     modifier withNAffiliates(uint256 n) {
-        vm.startPrank(deployerAddress);
-        ponzi.setDeadline(block.timestamp + 1 days);
-        vm.stopPrank();
-
+        startRegistration();
         for (uint256 i = 0; i < n; i++) {
             (address[] memory currentAffiliates, uint256 affiliatesCount) = getPonziAffiliates();
             address newAffiliate = address(uint160(uint256(keccak256(abi.encodePacked(i + 1)))));
@@ -62,9 +59,7 @@ contract PonziTest is Test {
     // After this attacker can buy ownership role using buyOwnerRole() function
     // and then can call addNewAffilliate as many times as he wants. For each call his address will pushed to affiliates_ array
     function testOwnerBuyExploit() public {
-        vm.startPrank(deployerAddress);
-        ponzi.setDeadline(block.timestamp + 1 days);
-        vm.stopPrank();
+        startRegistration();
 
         vm.startPrank(ATTACKER);
         ponzi.joinPonzi{value: 0}(new address[](0));
@@ -87,7 +82,6 @@ contract PonziTest is Test {
 
     function testFreeOwnershipExploit() public {
         startRegistration();
-
         vm.startPrank(ATTACKER);
         ponzi.joinPonzi{value: 0}(new address[](0));
         vm.stopPrank();
@@ -102,6 +96,11 @@ contract PonziTest is Test {
         assertEq(payable(ATTACKER).balance, 10 ether, "Attacker did not get ownership for free");
     }
 
+    /*//////////////////////////////////////////////////////////////
+                                 HELPERS
+    //////////////////////////////////////////////////////////////*/
+
+    /// @dev This function is used to get the list of affiliates and affiliatesCount, used only as helper
     function getPonziAffiliates() public view returns (address[] memory affiliates, uint256 affiliatesCount) {
         affiliatesCount = ponzi.affiliatesCount();
         affiliates = new address[](affiliatesCount);
@@ -110,6 +109,7 @@ contract PonziTest is Test {
         }
     }
 
+    /// @dev This function is used to join the ponzi without paying any ether to other affiliates
     function joinForFreeHelper() public {
         // deposit ether to attacker address
         (, uint256 affiliatesCount) = getPonziAffiliates();
